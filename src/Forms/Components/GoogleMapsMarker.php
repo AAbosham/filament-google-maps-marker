@@ -119,8 +119,6 @@ class GoogleMapsMarker extends Field
 
     public function setCastLocations($state): array
     {
-        // dd($state);
-
         if (!$state) {
             return [];
         }
@@ -367,5 +365,17 @@ class GoogleMapsMarker extends Field
     public function getMinMarkers(): int | null
     {
         return $this->evaluate($this->options['minMarkers']);
+    }
+
+    public function multiple(bool |   Closure $multiple = true): static
+    {
+        $this->options['multiple'] = $multiple;
+
+        return $this;
+    }
+
+    public function isMultiple(): bool
+    {
+        return $this->evaluate($this->options['multiple']);
     }
 }

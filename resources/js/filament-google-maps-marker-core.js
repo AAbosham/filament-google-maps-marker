@@ -1,7 +1,6 @@
 function googleMapMarker(config) {
 
     return {
-
         value: config.value,
         zoom: config.zoom,
 
@@ -81,11 +80,6 @@ function googleMapMarker(config) {
                     this.value[marker.extra.markerId] = marker.getPosition().toJSON();
                 });
 
-
-            // if (changeCenter) {
-            //     this.map.setCenter(point);
-            // }
-
             this.markers.push(marker);
 
             this.drawPolyPath()
@@ -135,22 +129,23 @@ function googleMapMarker(config) {
 
             this.setMarkers()
 
+            if (config.options.multiple) {
+                this.map.addListener('click', (event) => {
+                    if (config.options.maxMarkers != null) {
+                        if (this.markers.length >= config.options.maxMarkers) {
+                            return;
+                        }
+                    }
 
-            // this.geodesicPoly.setPath(path);
+                    var key = 'key-' + Date.now();
+                    var position = event.latLng.toJSON();
+                    this.value[key] = position;
 
-            // if (markers.length > 0) {
-            //     this.updateMapBinding(this.mapMarkers[0]);
-            // }
+                    var markerLabel = (Object.keys(this.value).length + 1).toString();
 
-            this.map.addListener('click', (event) => {
-                var key = 'key-' + Date.now();
-                var position = event.latLng.toJSON();
-                this.value[key] = position;
-
-                var markerLabel = (Object.keys(this.value).length + 1).toString();
-
-                this.addMarker(event.latLng.toJSON(), key, markerLabel)
-            });
+                    this.addMarker(event.latLng.toJSON(), key, markerLabel)
+                });
+            }
 
             if (config.options.fixMarkerOnCenter) {
                 this.map.addListener('drag', (event) => {
@@ -175,7 +170,10 @@ function googleMapMarker(config) {
                                     lat: position.coords.latitude,
                                     lng: position.coords.longitude,
                                 };
-                                // this.value[0] = pos;
+
+                                this.addMarker(pos)
+
+                                this.map.setCenter(pos);
                             },
                             () => {
                                 console.log('Browser supports Geolocation but got error. Probably no permission granted.');
@@ -195,7 +193,10 @@ function googleMapMarker(config) {
                                 lat: position.coords.latitude,
                                 lng: position.coords.longitude,
                             };
-                            // this.value[0] = pos;
+
+                            this.addMarker(pos)
+
+                            this.map.setCenter(pos);
                         },
                         () => {
                             console.log('Browser supports Geolocation but got error. Probably no permission granted.');
@@ -228,10 +229,8 @@ function googleMapMarker(config) {
 
             this.$watch('value', () => {
                 let position = this.getLastStateValue();
-                // console.log('$watchvalue', this.value);
                 // markers[0].setPosition(position);
                 // map.panTo(position);
-
 
                 if (config.controls.coordsBoxControl) {
                     coordsBoxControl.value = position.lat + ',' + position.lng;

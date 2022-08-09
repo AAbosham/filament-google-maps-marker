@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "filament-google-maps-marker",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "A Filament Field to get coordinates based on Google Maps",
   "main": "tailwind.config.js",
   "directories": {
