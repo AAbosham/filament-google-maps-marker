@@ -46,7 +46,7 @@ class GoogleMapsMarker extends Field
         'minHeight' => '50vh', // vh, px, %,
         'draggable' => true, // draggable markers,
         'multiple' => false,
-        'maxMarkers' => 1,
+        'maxMarkers' => null,
         'minMarkers' => 0,
         'cast' => null, // latLngString , latLngArray
     ];
