@@ -2,10 +2,16 @@
 
 namespace AAbosham\FilamentGoogleMapsMarker\Forms\Components;
 
+use Closure;
 use Filament\Forms\Components\Field;
+use Filament\Forms\Components\Concerns\CanBeDisabled;
+use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class GoogleMapsMarker extends Field
 {
+    use CanBeDisabled;
+
     protected string $view = 'filament-google-maps-marker::forms.components.google-maps-marker';
 
     /**
@@ -32,12 +38,17 @@ class GoogleMapsMarker extends Field
 
     private array $options = [
         'zoom' => 1,
-        'mapTypeId' => 'roadmap', // roadmap, satellite, hybrid or terrain
+        'mapTypeId' => 'hybrid', // roadmap, satellite, hybrid or terrain
         'fixMarkerOnCenter' => false,
         'defaultToMyLocation' => false,
-        'searchBoxPlaceholderText' => 'Search address..',
-        'locationButtonText' => 'My location',
-        'minHeight' => '50vh' // vh, px, %
+        'searchBoxPlaceholderText' => null,
+        'locationButtonText' => null,
+        'minHeight' => '50vh', // vh, px, %,
+        'draggable' => true, // draggable markers,
+        'multiple' => false,
+        'maxMarkers' => 1,
+        'minMarkers' => 0,
+        'cast' => null, // latLngString , latLngArray
     ];
 
     /**
@@ -47,12 +58,147 @@ class GoogleMapsMarker extends Field
     protected function setUp(): void
     {
         parent::setUp();
-        $this->default(['lat' => 0, 'lng' => 0]);
+
+        $this->dehydrateStateUsing(static function (GoogleMapsMarker $component, ?array $state) {
+            if ($component->options['cast'] != null) {
+                return $component->getCastLocations($state);
+            }
+
+            return $state;
+        });
+
+        $this->afterStateHydrated(function (GoogleMapsMarker $component, $state) {
+            if ($component->options['cast'] != null) {
+                $data = $component->setCastLocations($state);
+
+                $component->state($data);
+            }
+        });
+
+        $this->locationButtonText(__('filament-google-maps-marker::map.actions.current_location.label'));
+
+        $this->searchBoxPlaceholderText(__('filament-google-maps-marker::map.fieldset.search_box.placeholder'));
+    }
+
+    public function getCastLocations($state): array
+    {
+        $castType = $this->options['cast'];
+
+        $locations = [];
+
+        switch ($castType) {
+            case 'latLngString':
+                return collect($state ?? [])
+                    ->map(function ($location) {
+                        return $location['lat'] . ',' . $location['lng'];
+                    })
+                    ->filter()
+                    ->toArray();
+                break;
+
+            case 'latLngArray':
+                return collect($state ?? [])
+                    ->map(function ($location) {
+                        return [
+                            $location['lat'],
+                            $location['lng']
+                        ];
+                    })
+                    ->filter()
+                    ->toArray();
+                break;
+
+            default:
+                throw new InvalidArgumentException('Incorrect cast format.');
+                break;
+        }
+
+        return $locations;
+    }
+
+
+    public function setCastLocations($state): array
+    {
+        // dd($state);
+
+        if (!$state) {
+            return [];
+        }
+
+        $castType = $this->options['cast'];
+
+        $locations = [];
+
+        switch ($castType) {
+            case 'latLngString':
+                foreach (collect($state) ?? [] as $location) {
+                    $separator = Str::contains($location, ',') ? ',' : (Str::contains($location, ' ') ? ' ' : null);
+
+                    if ($separator == null) {
+                        throw new InvalidArgumentException('Location cast not string correct format check string lat lng separator.');
+                    }
+
+                    $location = explode($separator, $location);
+
+                    if (count($location) != 2) {
+                        throw new InvalidArgumentException('Incorrect location format.');
+                    }
+
+                    $locations[(string) Str::uuid()] = ['lat' => (float) $location[0], 'lng' => (float) $location[1]];
+                };
+                break;
+
+            case 'latLngArray':
+                foreach ($state ?? [] as $location) {
+
+                    $location = collect($location)->toArray();
+
+                    if (count($location) != 2) {
+                        throw new InvalidArgumentException('Incorrect location format.');
+                    }
+
+                    $locations[(string) Str::uuid()] = ['lat' => (float) $location[0], 'lng' => (float) $location[1]];
+                };
+                break;
+
+            default:
+                throw new InvalidArgumentException('Incorrect cast format.');
+                break;
+        }
+
+        return $locations;
+    }
+
+    public function castFromLatLngArray(): self
+    {
+        $this->cast('latLngString');
+
+        return $this;
+    }
+
+    public function castFromLatLngString(): self
+    {
+        $this->cast('latLngString');
+
+        return $this;
+    }
+
+    protected function cast(string $cast): self
+    {
+        $this->options['cast'] = $cast;
+
+        return $this;
+    }
+
+    public function getCast(): string
+    {
+        return $this->evaluate($this->options['cast']);
     }
 
     public function zoom(int $zoom): self
     {
         $this->options['zoom'] = $zoom;
+
         return $this;
     }
 
@@ -67,6 +213,7 @@ class GoogleMapsMarker extends Field
         $this->options['fixMarkerOnCenter'] = $status;
         return $this;
     }
+
     public function defaultToMyLocation($status = true): self
     {
         $this->options['defaultToMyLocation'] = $status;
@@ -89,9 +236,10 @@ class GoogleMapsMarker extends Field
         return $this->options['locationButtonText'];
     }
 
-    public function locationButtonText($text = 'Current Location'): self
+    public function locationButtonText($text): self
     {
-        $this->options['locationButtonText'] = $text;
+        $this->options['locationButtonText'] = $text ;
+
         return $this;
     }
 
@@ -100,9 +248,9 @@ class GoogleMapsMarker extends Field
         return $this->options['minHeight'];
     }
 
-    public function minHeight($text = 'Current Location'): self
+    public function minHeight($minHeight = '50vh'): self
     {
-        $this->options['minHeight'] = $text;
+        $this->options['minHeight'] = $minHeight;
         return $this;
     }
 
@@ -183,5 +331,41 @@ class GoogleMapsMarker extends Field
     public function isGeolocationControlEnabled()
     {
         return $this->controls['geolocationControl'];
+    }
+
+    public function draggable(bool | Closure $condition = true): static
+    {
+        $this->options['draggable'] = $condition;
+
+        return $this;
+    }
+
+    public function isDraggable(): bool
+    {
+        return $this->evaluate($this->options['draggable']) || $this->getContainer()->isDisabled();
+    }
+
+    public function maxMarkers(int | null | Closure $maxMarkers = null): static
+    {
+        $this->options['maxMarkers'] = $maxMarkers;
+
+        return $this;
+    }
+
+    public function getMaxMarkers(): int | null
+    {
+        return $this->evaluate($this->options['maxMarkers']);
+    }
+
+    public function minMarkers(int | null |  Closure $minMarkers = null): static
+    {
+        $this->options['minMarkers'] = $minMarkers;
+
+        return $this;
+    }
+
+    public function getMinMarkers(): int | null
+    {
+        return $this->evaluate($this->options['minMarkers']);
     }
 }

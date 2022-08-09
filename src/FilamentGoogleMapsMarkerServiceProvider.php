@@ -30,6 +30,7 @@ class FilamentGoogleMapsMarkerServiceProvider extends PluginServiceProvider
         $package
             ->name('filament-google-maps-marker')
             ->hasConfigFile()
-            ->hasViews();
+            ->hasViews()
+            ->hasTranslations();
     }
 }
