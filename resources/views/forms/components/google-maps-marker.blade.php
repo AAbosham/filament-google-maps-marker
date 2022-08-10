@@ -11,26 +11,26 @@
         options: {{ $getMapOptions() }},
         statePath: '{{ $getStatePath() }}'
     })">
-        @if ($isGeolocationControlEnabled())
-            <button x-ref="locationButton" onclick="return false;"
-                class="mb-6 inline-flex items-center justify-center gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset filament-button h-9 px-4 text-sm text-gray-800 bg-white border-gray-300 hover:bg-gray-50 focus:ring-primary-600 focus:text-primary-600 focus:bg-primary-50 focus:border-primary-600 filament-page-button-action">
-                <x-heroicon-o-location-marker class="w-3 h-3" />
-                <span>{{ $getLocationButtonText() }}</span>
-            </button>
-        @endif
+        <div x-ref="map" class="w-full" style="min-height: {{ $getMinHeight() }} ">
+            @if ($isSearchBoxControlEnabled())
+                <input x-ref="searchBox" type="text" placeholder="{{ $getSearchBoxPlaceholderText() }}"
+                    onkeydown="if (event.keyCode == 13){  return false;}"
+                    class="mt-2 ml-2 w-2/6 block transition duration-75 rounded-lg shadow-sm focus:border-primary-600 focus:ring-1 focus:ring-inset focus:ring-primary-600 disabled:opacity-70 border-gray-300" />
+            @endif
 
-        @if ($isSearchBoxControlEnabled())
-            <input x-ref="searchBox" type="text" placeholder="{{ $getSearchBoxPlaceholderText() }}"
-                onkeydown="if (event.keyCode == 13){  return false;}"
-                class="mt-2 ml-2 w-2/6 block transition duration-75 rounded-lg shadow-sm focus:border-primary-600 focus:ring-1 focus:ring-inset focus:ring-primary-600 disabled:opacity-70 border-gray-300" />
-        @endif
+            @if ($isGeolocationControlEnabled())
+                <button x-ref="locationButton" onclick="return false;"
+                    class="mb-6 inline-flex items-center justify-center gap-1 font-medium rounded-lg border transition-colors focus:outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset filament-button h-9 px-4 text-sm text-gray-800 bg-white border-gray-300 hover:bg-gray-50 focus:ring-primary-600 focus:text-primary-600 focus:bg-primary-50 focus:border-primary-600 filament-page-button-action">
+                    <x-heroicon-o-location-marker class="w-3 h-3" />
+                    <span>{{ $getLocationButtonText() }}</span>
+                </button>
+            @endif
 
-        @if ($isCoordsBoxControlEnabled())
-            <div x-ref="actionsBox" class="mb-6 mx-1 bg-white inline-flex items-center rounded-full h-9">
-                {{ $getEditAction() }}
-            </div>
-        @endif
-
-        <div x-ref="map" class="w-full" style="min-height: {{ $getMinHeight() }} "></div>
+            @if ($isCoordsBoxControlEnabled())
+                <div x-ref="actionsBox" class="mb-6 mx-1 bg-white inline-flex items-center rounded-full h-9">
+                    {{ $getEditAction() }}
+                </div>
+            @endif
+        </div>
     </div>
 </x-forms::field-wrapper>
