@@ -31,8 +31,8 @@ function googleMapMarker(config) {
         drawPolyPath: function () {
             var path = [];
 
-            for (i = 0; i < this.markers.length; i++) {
-                var m = this.markers[i];
+            for (polyPathIndex = 0; polyPathIndex < this.markers.length; polyPathIndex++) {
+                var m = this.markers[polyPathIndex];
                 if (m.map) {
                     path.push(m.getPosition());
                 }
@@ -42,7 +42,7 @@ function googleMapMarker(config) {
         },
 
         addMarker: function (position, key, label) {
-            if (key === undefined || key === null) {
+            if (key == undefined || key == null) {
                 key = 'key-' + Date.now();
             }
 
@@ -62,10 +62,10 @@ function googleMapMarker(config) {
 
                     delete this.value[marker.extra.markerId];
 
-                    for (i = 0; i < this.markers.length; i++) {
-                        var m = this.markers[i];
+                    for (dblclickRemoveMarkerIndex = 0; dblclickRemoveMarkerIndex < this.markers.length; dblclickRemoveMarkerIndex++) {
+                        var m = this.markers[dblclickRemoveMarkerIndex];
                         if (m.map == null) {
-                            this.markers.splice(i, 1);
+                            this.markers.splice(dblclickRemoveMarkerIndex, 1);
                         }
                     }
 
@@ -94,16 +94,34 @@ function googleMapMarker(config) {
         },
 
         setMarkers: function () {
-            for (i = 0; i < Object.keys(this.value).length; i++) {
+            var markerLength = Object.keys(this.value).length;
 
-                var key = Object.keys(this.value)[i];
+            for (setMarkerIndex = 0; setMarkerIndex < markerLength; setMarkerIndex++) {
 
-                let position = this.value[Object.keys(this.value)[i]];
+                var key = Object.keys(this.value)[setMarkerIndex];
 
-                var markerLabel = (i + 1).toString();
+                let position = this.value[Object.keys(this.value)[setMarkerIndex]];
+
+                var markerLabel = null;//((setMarkerIndex) + 1).toString();
 
                 this.addMarker(position, key, markerLabel)
             }
+        },
+
+        removeMarkers: function () {
+            this.markers.map(function (marker) {
+                marker.setMap(null);
+                marker.setVisible(false);
+            });
+
+            for (let i = 0; i < this.markers.length; i++) {
+                this.markers[i].setMap(null);
+                this.markers[i].setVisible(false);
+            }
+
+            this.markers = [];
+
+            this.drawPolyPath();
         },
 
         init: function () {
@@ -129,6 +147,16 @@ function googleMapMarker(config) {
 
             this.setMarkers()
 
+            Livewire.on('updateMarkersData', async ({
+                data
+            }) => {
+                if (data) {
+                    this.removeMarkers();
+
+                    this.setMarkers();
+                }
+            })
+
             if (config.options.multiple) {
                 this.map.addListener('click', (event) => {
                     if (config.options.maxMarkers != null) {
@@ -138,7 +166,9 @@ function googleMapMarker(config) {
                     }
 
                     var key = 'key-' + Date.now();
+
                     var position = event.latLng.toJSON();
+
                     this.value[key] = position;
 
                     var markerLabel = (Object.keys(this.value).length + 1).toString();
@@ -223,17 +253,16 @@ function googleMapMarker(config) {
             }
 
             if (config.controls.coordsBoxControl) {
-                coordsBoxControl = this.$refs.coordsBox;
-                this.map.controls[google.maps.ControlPosition.LEFT_BOTTOM].push(coordsBoxControl);
+                actionsControl = this.$refs.actionsBox;
+                this.map.controls[google.maps.ControlPosition.BOTTOM_CENTER].push(actionsControl);
             }
 
             this.$watch('value', () => {
                 let position = this.getLastStateValue();
-                // markers[0].setPosition(position);
-                // map.panTo(position);
 
-                if (config.controls.coordsBoxControl) {
-                    coordsBoxControl.value = position.lat + ',' + position.lng;
+                if (position) {
+                    this.map.setCenter(position);
+                    this.map.panTo(position);
                 }
             })
 

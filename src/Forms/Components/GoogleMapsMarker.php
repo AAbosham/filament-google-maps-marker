@@ -2,15 +2,21 @@
 
 namespace AAbosham\FilamentGoogleMapsMarker\Forms\Components;
 
+use App\Forms\Components\MapMultiMarker;
 use Closure;
+use Filament\Forms\Components\Actions;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Concerns\CanBeDisabled;
+use Filament\Forms\Components\Concerns\HasActions;
+use Filament\Forms;
 use Illuminate\Support\Str;
+use Filament\Forms\ComponentContainer;
 use InvalidArgumentException;
 
 class GoogleMapsMarker extends Field
 {
     use CanBeDisabled;
+    use HasActions;
 
     protected string $view = 'filament-google-maps-marker::forms.components.google-maps-marker';
 
@@ -78,10 +84,80 @@ class GoogleMapsMarker extends Field
         $this->locationButtonText(__('filament-google-maps-marker::map.actions.current_location.label'));
 
         $this->searchBoxPlaceholderText(__('filament-google-maps-marker::map.fieldset.search_box.placeholder'));
+
+        $this->registerActions([
+            Actions\Action::make('edit')
+                ->icon('heroicon-s-pencil')
+                ->label(__('filament-google-maps-marker::map.actions.edit.label'))
+                ->color('secondary')
+                ->extraAttributes([
+                    'class' => 'bg-white hover:bg-white',
+                ])
+                ->mountUsing(function (?ComponentContainer $form = null, array $data, $component, $livewire): void {
+                    if (!$form) {
+                        return;
+                    }
+
+                    $form->fill([
+                        'locations' => $component->getState()
+                    ]);
+                })
+                ->form([
+                    Forms\Components\Tabs::make('')
+                        ->tabs([
+                            Forms\Components\Tabs\Tab::make('lat_lng_system')
+                                ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.lat_lng_system.label'))
+                                ->schema([
+                                    Forms\Components\Grid::make()
+                                        ->columns(1)
+                                        ->schema([
+                                            Forms\Components\Repeater::make('locations')
+                                                ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.label'))
+                                                ->createItemButtonLabel(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.actions.create'))
+                                                ->minItems(2)
+                                                ->schema([
+                                                    Forms\Components\TextInput::make('lat')
+                                                        ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.latitude.label'))
+                                                        ->placeholder(__('filament-google-maps-marker::map.actions.edit.fieldset.latitude.placeholder'))
+                                                        ->numeric()
+                                                        ->maxValue(90.0000000)
+                                                        ->minValue(-90.0000000)
+                                                        ->required(),
+
+                                                    Forms\Components\TextInput::make('lng')
+                                                        ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.longitude.label'))
+                                                        ->placeholder(__('filament-google-maps-marker::map.actions.edit.fieldset.longitude.placeholder'))
+                                                        ->numeric()
+                                                        ->maxValue(180.0000000)
+                                                        ->minValue(-180.0000000)
+                                                        ->required(),
+                                                ])
+                                                ->columns(2),
+                                        ]),
+                                ]),
+                        ]),
+                ])
+                ->action(function (array $data, $component, $livewire) {
+                    // cast to number;
+                    $locations = collect($data['locations'])->map(function ($location){
+                        $location['lat'] = (float) $location['lat'];
+                        $location['lng'] = (float) $location['lng'];
+
+                        return $location;
+                     });
+
+                    $component->state($locations);
+
+                    $livewire->emit('updateMarkersData', [
+                        'data' => $locations,
+                    ]);
+                })
+        ]);
     }
 
     public function getCastLocations($state): array
     {
+        info($state);
         $castType = $this->options['cast'];
 
         $locations = [];
@@ -90,6 +166,8 @@ class GoogleMapsMarker extends Field
             case 'latLngString':
                 return collect($state ?? [])
                     ->map(function ($location) {
+                        info($location);
+
                         return $location['lat'] . ',' . $location['lng'];
                     })
                     ->filter()
@@ -129,7 +207,14 @@ class GoogleMapsMarker extends Field
 
         switch ($castType) {
             case 'latLngString':
-                foreach (collect($state) ?? [] as $location) {
+                foreach (collect($state)->filter()->toArray() ?? [] as $location) {
+                    if (gettype($location) == 'array') {
+                        if (array_key_exists('lat', $location) && array_key_exists('lng', $location)) {
+                            $locations[(string) Str::uuid()] = ['lat' => (float) $location['lat'], 'lng' => (float) $location['lng']];
+                            continue;
+                        }
+                    }
+
                     $separator = Str::contains($location, ',') ? ',' : (Str::contains($location, ' ') ? ' ' : null);
 
                     if ($separator == null) {
@@ -236,7 +321,7 @@ class GoogleMapsMarker extends Field
 
     public function locationButtonText($text): self
     {
-        $this->options['locationButtonText'] = $text ;
+        $this->options['locationButtonText'] = $text;
 
         return $this;
     }
@@ -377,5 +462,10 @@ class GoogleMapsMarker extends Field
     public function isMultiple(): bool
     {
         return $this->evaluate($this->options['multiple']);
+    }
+
+    public function getEditAction(): Actions\Action
+    {
+        return $this->getAction('edit');
     }
 }

@@ -2,16 +2,8 @@
     src="https://maps.googleapis.com/maps/api/js?key={{ config('filament-google-maps-marker.google_maps_key') }}&libraries=places&v=weekly&language={{ app()->getLocale() }}">
 </script>
 
-<x-forms::field-wrapper
-    :id="$getId()"
-    :label="$getLabel()"
-    :label-sr-only="$isLabelHidden()"
-    :helper-text="$getHelperText()"
-    :hint="$getHint()"
-    :hint-icon="$getHintIcon()"
-    :required="$isRequired()"
-    :state-path="$getStatePath()"
-    >
+<x-forms::field-wrapper :id="$getId()" :label="$getLabel()" :label-sr-only="$isLabelHidden()" :helper-text="$getHelperText()" :hint="$getHint()"
+    :hint-icon="$getHintIcon()" :required="$isRequired()" :state-path="$getStatePath()">
 
     <div wire:ignore x-data="googleMapMarker({
         value: $wire.entangle('{{ $getStatePath() }}'),
@@ -34,8 +26,9 @@
         @endif
 
         @if ($isCoordsBoxControlEnabled())
-            <input x-ref="coordsBox" type="text"
-                class="w-2/6 ml-2 block transition duration-75 rounded-lg shadow-sm focus:border-primary-600 focus:ring-1 focus:ring-inset focus:ring-primary-600 disabled:opacity-70 border-gray-300" />
+            <div x-ref="actionsBox" class="mb-6 mx-1 bg-white inline-flex items-center rounded-full h-9">
+                {{ $getEditAction() }}
+            </div>
         @endif
 
         <div x-ref="map" class="w-full" style="min-height: {{ $getMinHeight() }} "></div>
