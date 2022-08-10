@@ -9,7 +9,9 @@
         value: $wire.entangle('{{ $getStatePath() }}'),
         controls: {{ $getMapControls() }},
         options: {{ $getMapOptions() }},
-        statePath: '{{ $getStatePath() }}'
+        statePath: '{{ $getStatePath() }}',
+        maxItems: '{{ $getMaxItems() }}',
+        minItems: '{{ $getMinItems() }}'
     })">
         <div x-ref="map" class="w-full" style="min-height: {{ $getMinHeight() }} ">
             @if ($isSearchBoxControlEnabled())

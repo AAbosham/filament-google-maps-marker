@@ -24,11 +24,13 @@ return [
                 ],
 
                 'latitude' => [
-                    'label' => 'خط العرض'
+                    'label' => 'خط العرض',
+                    'placeholder' => 'خط العرض'
                 ],
 
                 'longitude' => [
-                    'label' => 'خط الطول'
+                    'label' => 'خط الطول',
+                    'placeholder' => 'خط الطول'
                 ]
             ]
         ],

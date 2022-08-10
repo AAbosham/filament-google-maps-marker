@@ -157,25 +157,31 @@ function googleMapMarker(config) {
                 }
             })
 
-            if (config.options.multiple) {
-                this.map.addListener('click', (event) => {
-                    if (config.options.maxMarkers != null) {
-                        if (this.markers.length >= config.options.maxMarkers) {
-                            return;
-                        }
+            this.map.addListener('click', (event) => {
+                if (!config.options.multiple && this.markers.length > 0) {
+                    return;
+                }
+
+                if (config.maxItems > 0 && this.markers.length > 0) {
+                    if (this.markers.length >= config.maxItems) {
+                        return;
                     }
+                }
 
-                    var key = 'key-' + Date.now();
+                if(this.markers.length  == 0){
+                    this.value = {};
+                }
 
-                    var position = event.latLng.toJSON();
+                var markerLabel = null;//(Object.keys(this.value).length + 1).toString();
 
-                    this.value[key] = position;
+                var key = 'key-' + Date.now();
 
-                    var markerLabel = (Object.keys(this.value).length + 1).toString();
+                var position = event.latLng.toJSON();
 
-                    this.addMarker(event.latLng.toJSON(), key, markerLabel)
-                });
-            }
+                this.value[key] = position;
+
+                this.addMarker(event.latLng.toJSON(), key, markerLabel)
+            });
 
             if (config.options.fixMarkerOnCenter) {
                 this.map.addListener('drag', (event) => {
@@ -201,6 +207,7 @@ function googleMapMarker(config) {
                                     lng: position.coords.longitude,
                                 };
 
+
                                 this.addMarker(pos)
 
                                 this.map.setCenter(pos);
@@ -223,6 +230,14 @@ function googleMapMarker(config) {
                                 lat: position.coords.latitude,
                                 lng: position.coords.longitude,
                             };
+
+                            var key = 'key-' + Date.now();
+
+                            let locations = {};
+
+                            locations[key] = pos;
+
+                            this.value = locations;
 
                             this.addMarker(pos)
 

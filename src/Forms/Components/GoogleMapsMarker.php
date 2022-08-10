@@ -11,12 +11,15 @@ use Filament\Forms\Components\Concerns\HasActions;
 use Filament\Forms;
 use Illuminate\Support\Str;
 use Filament\Forms\ComponentContainer;
+use Filament\Forms\Components\Concerns\CanLimitItemsLength;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 class GoogleMapsMarker extends Field
 {
     use CanBeDisabled;
     use HasActions;
+    use CanLimitItemsLength;
 
     protected string $view = 'filament-google-maps-marker::forms.components.google-maps-marker';
 
@@ -52,8 +55,6 @@ class GoogleMapsMarker extends Field
         'minHeight' => '50vh', // vh, px, %,
         'draggable' => true, // draggable markers,
         'multiple' => false,
-        'maxMarkers' => null,
-        'minMarkers' => 0,
         'cast' => null, // latLngString , latLngArray
     ];
 
@@ -74,6 +75,7 @@ class GoogleMapsMarker extends Field
         });
 
         $this->afterStateHydrated(function (GoogleMapsMarker $component, $state) {
+
             if ($component->options['cast'] != null) {
                 $data = $component->setCastLocations($state);
 
@@ -114,7 +116,8 @@ class GoogleMapsMarker extends Field
                                             Forms\Components\Repeater::make('locations')
                                                 ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.label'))
                                                 ->createItemButtonLabel(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.actions.create'))
-                                                ->minItems(2)
+                                                ->maxItems($this->getMaxItems() ?? 1)
+                                                ->minItems($this->getMinItems() ?? null)
                                                 ->schema([
                                                     Forms\Components\TextInput::make('lat')
                                                         ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.latitude.label'))
@@ -139,12 +142,12 @@ class GoogleMapsMarker extends Field
                 ])
                 ->action(function (array $data, $component, $livewire) {
                     // cast to number;
-                    $locations = collect($data['locations'])->map(function ($location){
+                    $locations = collect($data['locations'])->map(function ($location) {
                         $location['lat'] = (float) $location['lat'];
                         $location['lng'] = (float) $location['lng'];
 
                         return $location;
-                     });
+                    });
 
                     $component->state($locations);
 
@@ -155,35 +158,44 @@ class GoogleMapsMarker extends Field
         ]);
     }
 
-    public function getCastLocations($state): array
+    public function getCastLocations($state): array | null | string
     {
-        info($state);
         $castType = $this->options['cast'];
 
         $locations = [];
 
         switch ($castType) {
             case 'latLngString':
-                return collect($state ?? [])
+                $locations = collect($state ?? [])
                     ->map(function ($location) {
-                        info($location);
-
                         return $location['lat'] . ',' . $location['lng'];
                     })
-                    ->filter()
-                    ->toArray();
+                    ->filter();
+
+                if ($this->isMultiple()) {
+                    return $locations->toArray();
+                } else {
+                    return $locations->first();
+                }
+
                 break;
 
             case 'latLngArray':
-                return collect($state ?? [])
+                $locations = collect($state ?? [])
                     ->map(function ($location) {
                         return [
                             $location['lat'],
                             $location['lng']
                         ];
                     })
-                    ->filter()
-                    ->toArray();
+                    ->filter();
+
+                if ($this->isMultiple()) {
+                    return $locations->toArray();
+                } else {
+                    return $locations->first();
+                }
+
                 break;
 
             default:
@@ -218,16 +230,18 @@ class GoogleMapsMarker extends Field
                     $separator = Str::contains($location, ',') ? ',' : (Str::contains($location, ' ') ? ' ' : null);
 
                     if ($separator == null) {
-                        throw new InvalidArgumentException('Location cast not string correct format check string lat lng separator.');
+                        Log::error('Location cast not string correct format check string lat lng separator.');
+                        //  throw new InvalidArgumentException('Location cast not string correct format check string lat lng separator.');
+                    } else {
+                        $location = explode($separator, $location);
+
+                        if (count($location) == 2) {
+                            $locations[(string) Str::uuid()] = ['lat' => (float) $location[0], 'lng' => (float) $location[1]];
+                        } else {
+                            Log::error('Incorrect location format.');
+                            // throw new InvalidArgumentException('Incorrect location format.');
+                        }
                     }
-
-                    $location = explode($separator, $location);
-
-                    if (count($location) != 2) {
-                        throw new InvalidArgumentException('Incorrect location format.');
-                    }
-
-                    $locations[(string) Str::uuid()] = ['lat' => (float) $location[0], 'lng' => (float) $location[1]];
                 };
                 break;
 
@@ -428,30 +442,6 @@ class GoogleMapsMarker extends Field
         return $this->evaluate($this->options['draggable']) || $this->getContainer()->isDisabled();
     }
 
-    public function maxMarkers(int | null | Closure $maxMarkers = null): static
-    {
-        $this->options['maxMarkers'] = $maxMarkers;
-
-        return $this;
-    }
-
-    public function getMaxMarkers(): int | null
-    {
-        return $this->evaluate($this->options['maxMarkers']);
-    }
-
-    public function minMarkers(int | null |  Closure $minMarkers = null): static
-    {
-        $this->options['minMarkers'] = $minMarkers;
-
-        return $this;
-    }
-
-    public function getMinMarkers(): int | null
-    {
-        return $this->evaluate($this->options['minMarkers']);
-    }
-
     public function multiple(bool |   Closure $multiple = true): static
     {
         $this->options['multiple'] = $multiple;
@@ -467,5 +457,27 @@ class GoogleMapsMarker extends Field
     public function getEditAction(): Actions\Action
     {
         return $this->getAction('edit');
+    }
+
+    public function maxMarkers(int | Closure | null $count): static
+    {
+        $this->maxItems($count);
+
+        if($count > 1){
+            $this->multiple($count);
+        }
+
+        return $this;
+    }
+
+    public function minMarkers(int | Closure | null $count): static
+    {
+        $this->minItems($count);
+
+        if($count > 1){
+            $this->multiple($count);
+        }
+
+        return $this;
     }
 }
