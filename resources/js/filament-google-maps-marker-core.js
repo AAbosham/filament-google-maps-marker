@@ -76,6 +76,11 @@ function googleMapMarker(config) {
             marker.addListener('position_changed',
                 () => {
                     this.drawPolyPath();
+                });
+
+            marker.addListener('dragend',
+                () => {
+                    this.drawPolyPath();
 
                     this.value[marker.extra.markerId] = marker.getPosition().toJSON();
                 });
@@ -94,18 +99,21 @@ function googleMapMarker(config) {
         },
 
         setMarkers: function () {
-            var markerLength = Object.keys(this.value).length;
+            if (this.value) {
+                var markerLength = Object.keys(this.value).length;
 
-            for (setMarkerIndex = 0; setMarkerIndex < markerLength; setMarkerIndex++) {
+                for (setMarkerIndex = 0; setMarkerIndex < markerLength; setMarkerIndex++) {
 
-                var key = Object.keys(this.value)[setMarkerIndex];
+                    var key = Object.keys(this.value)[setMarkerIndex];
 
-                let position = this.value[Object.keys(this.value)[setMarkerIndex]];
+                    let position = this.value[Object.keys(this.value)[setMarkerIndex]];
 
-                var markerLabel = null;//((setMarkerIndex) + 1).toString();
+                    var markerLabel = null;//((setMarkerIndex) + 1).toString();
 
-                this.addMarker(position, key, markerLabel)
+                    this.addMarker(position, key, markerLabel)
+                }
             }
+
         },
 
         removeMarkers: function () {
@@ -125,9 +133,16 @@ function googleMapMarker(config) {
         },
 
         init: function () {
-            this.center = this.value[Object.keys(this.value)[0]] || {
-                lat: 0,
-                lng: 0,
+            if (this.value) {
+                this.center = this.value[Object.keys(this.value)[0]] || {
+                    lat: 0,
+                    lng: 0,
+                }
+            } else {
+                this.center = {
+                    lat: 0,
+                    lng: 0,
+                }
             };
 
             this.map = new google.maps.Map(this.$refs.map, {
@@ -168,7 +183,7 @@ function googleMapMarker(config) {
                     }
                 }
 
-                if(this.markers.length  == 0){
+                if (this.markers.length == 0) {
                     this.value = {};
                 }
 
@@ -260,10 +275,16 @@ function googleMapMarker(config) {
                     input.value = ''
                     var location = searchBox.getPlaces()[0].geometry.location
 
-                    this.addMarker(location)
+                    if (config.options.multiple || this.markers.length == 0) {
 
-                    this.map.setCenter(location);
+                        this.markers[0]
 
+                        this.map.setCenter(location);
+                    } else {
+                        this.markers[0].setPosition(location);
+
+                        this.map.setCenter(location);
+                    }
                 })
             }
 
