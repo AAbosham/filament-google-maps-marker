@@ -162,15 +162,25 @@ function googleMapMarker(config) {
 
             this.setMarkers()
 
-            Livewire.on('updateMarkersData', async ({
-                data
-            }) => {
+            Livewire.on('update-markers-data', ({ data }) => {
                 if (data) {
+                    this.value = data;
+
                     this.removeMarkers();
 
                     this.setMarkers();
                 }
             })
+
+            // Livewire.on('updateMarkersData', async ({
+            //     data
+            // }) => {
+            //     if (data) {
+            //         this.removeMarkers();
+
+            //         this.setMarkers();
+            //     }
+            // })
 
             this.map.addListener('click', (event) => {
                 if (!config.options.multiple && this.markers.length > 0) {
