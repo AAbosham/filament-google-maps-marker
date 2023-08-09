@@ -89,11 +89,12 @@ class GoogleMapsMarker extends Field
 
         $this->registerActions([
             Actions\Action::make('edit')
+                ->button()
+                ->color('primary')
                 ->icon('heroicon-s-pencil')
                 ->label(__('filament-google-maps-marker::map.actions.edit.label'))
-                ->color('secondary')
                 ->extraAttributes([
-                    'class' => 'bg-white hover:bg-white',
+                    // 'class' => 'bg-white hover:bg-white',
                 ])
                 ->mountUsing(function (?ComponentContainer $form = null, array $data, $component, $livewire): void {
                     if (!$form) {
@@ -115,9 +116,9 @@ class GoogleMapsMarker extends Field
                                         ->schema([
                                             Forms\Components\Repeater::make('locations')
                                                 ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.label'))
-                                                ->createItemButtonLabel(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.actions.create'))
+                                                // ->createItemButtonLabel(__('filament-google-maps-marker::map.actions.edit.fieldset.markers.actions.create'))
                                                 ->maxItems($this->getMaxItems() ?? 1)
-                                                ->minItems($this->getMinItems() ?? null)
+                                                // ->minItems($this->getMinItems() ?? null)
                                                 ->schema([
                                                     Forms\Components\TextInput::make('lat')
                                                         ->label(__('filament-google-maps-marker::map.actions.edit.fieldset.latitude.label'))
@@ -151,9 +152,12 @@ class GoogleMapsMarker extends Field
 
                     $component->state($locations);
 
-                    $livewire->emit('updateMarkersData', [
-                        'data' => $locations,
-                    ]);
+                    $livewire->dispatch('update-markers-data', data: $locations);
+
+
+                    // $component->emit('updateMarkersData', [
+                    //     'data' => $locations,
+                    // ]);
                 })
         ]);
     }
